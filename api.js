@@ -66,6 +66,10 @@ async function createRoute(req, res) {
 async function todoRoute(req, res) {
   const { id } = req.params;
 
+  if (id === '' || !Number.isInteger(Number(id))) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
   const todo = await readTodo(id);
 
   if (todo) {
@@ -98,7 +102,7 @@ async function patchRoute(req, res) {
     return res.status(404).json({ error: 'Item not found' });
   }
 
-  return res.status(201).json(result.item);
+  return res.status(200).json(result.item);
 }
 
 /**

@@ -90,7 +90,7 @@ function validate({ title, due, position, completed } = {}, patching = false) {
 *                                  kláruð, getur verið tómt til að fá öll.
  * @returns {array} Fylki af todo items
  */
-async function listTodos(order = 'asc', completed = undefined) {
+async function listTodos(order = '', completed = undefined) {
   let result;
 
   const orderString = order.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
@@ -102,7 +102,7 @@ async function listTodos(order = 'asc', completed = undefined) {
       id, title, position, due, created, updated, completed
     FROM todos
     WHERE completed = $1
-    ORDER BY position ${orderString}`;
+    ORDER BY created ${orderString}, id`;
 
     result = await query(q, [completedAsBoolean]);
   } else {
@@ -110,7 +110,7 @@ async function listTodos(order = 'asc', completed = undefined) {
     SELECT
       id, title, position, due, created, updated, completed
     FROM todos
-    ORDER BY position ${orderString}`;
+    ORDER BY created ${orderString}, id`;
 
     result = await query(q);
   }
@@ -216,10 +216,11 @@ async function updateTodo(id, { title, due, position, completed }) {
     due ? xss(due) : null,
     position ? xss(position) : null,
   ]
-    .filter(Boolean)
-    .concat([
-      completed != null ? Boolean(completed) : null,
-    ]);
+    .filter(Boolean);
+
+  if (completed != null) {
+    filteredValues.push(Boolean(completed));
+  }
 
   const updates = [
     title ? 'title' : null,
@@ -232,7 +233,7 @@ async function updateTodo(id, { title, due, position, completed }) {
 
   const sqlQuery = `
     UPDATE todos
-    SET ${updates} WHERE id = $1
+    SET ${updates}, updated = current_timestamp WHERE id = $1
     RETURNING id, title, position, due, created, updated, completed`;
   const values = [id, ...filteredValues];
 
